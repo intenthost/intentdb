@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IntentDB — Documentation & Console</title>
+  <meta name="description" content="IntentDB Real-Time PostgreSQL HTTP Gateway Documentation and Query Console.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-subtle: #f8fafc;
+      --bg-card: #ffffff;
+      --border: #e2e8f0;
+      --border-dark: #cbd5e1;
+      --text: #000000;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+      --blue: #2563eb;
+      --blue-hover: #1d4ed8;
+      --blue-subtle: #eff6ff;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 0 1.25rem;
+    }
+
+    /* Header */
+    header {
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+    }
+
+    .logo {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+
+    .logo span {
+      color: var(--blue);
+    }
+
+    .ping-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .ping-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--blue);
+    }
+
+    /* Hero */
+    .hero {
+      padding: 2.5rem 0 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hero h1 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+
+    .hero p {
+      color: var(--text-muted);
+      font-size: 1rem;
+      max-width: 680px;
+    }
+
+    /* Sections */
+    section {
+      padding: 2rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+
+    p.section-desc {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 1.25rem;
+    }
+
+    /* Forms & Inputs */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-group label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .input-text {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+    }
+
+    .input-text:focus {
+      border-color: var(--blue);
+    }
+
+    /* Connection Display Box */
+    .url-box {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 1rem;
+      overflow-x: auto;
+    }
+
+    .url-text {
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .url-text .key { color: var(--blue); font-weight: 600; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: #ffffff;
+      border: 1px solid var(--blue);
+    }
+
+    .btn-primary:hover {
+      background: var(--blue-hover);
+      border-color: var(--blue-hover);
+    }
+
+    .btn-outline {
+      background: #ffffff;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-outline:hover {
+      background: var(--bg-subtle);
+      border-color: var(--border-dark);
+    }
+
+    /* Code Blocks */
+    .code-box {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg-subtle);
+      margin-bottom: 1.25rem;
+      overflow: hidden;
+    }
+
+    .code-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      background: #ffffff;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+    }
+
+    pre.code-body {
+      padding: 12px 14px;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--text);
+      overflow-x: auto;
+      line-height: 1.5;
+    }
+
+    /* SQL Console */
+    .console-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .console-layout { grid-template-columns: 1fr; }
+    }
+
+    .query-textarea {
+      width: 100%;
+      height: 140px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 12px;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--text);
+      background: #ffffff;
+      resize: vertical;
+      outline: none;
+    }
+
+    .query-textarea:focus {
+      border-color: var(--blue);
+    }
+
+    .params-textarea {
+      width: 100%;
+      height: 50px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--text);
+      background: #ffffff;
+      resize: none;
+      outline: none;
+      margin-top: 6px;
+    }
+
+    .params-textarea:focus {
+      border-color: var(--blue);
+    }
+
+    .console-screen {
+      width: 100%;
+      height: 245px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 12px;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--text);
+      background: var(--bg-subtle);
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .chips-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .chip-btn {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 3px 8px;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .chip-btn:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+
+    /* Tabs */
+    .tabs-nav {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      gap: 4px;
+      margin-bottom: 1rem;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      color: var(--blue);
+      border-bottom-color: var(--blue);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 0.75rem;
+    }
+
+    th {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-subtle);
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    td {
+      padding: 10px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+    }
+
+    .tag-blue {
+      background: var(--blue-subtle);
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+
+    /* Info Callout */
+    .callout {
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--blue);
+      background: var(--bg-subtle);
+      padding: 12px 14px;
+      border-radius: 0 4px 4px 0;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin: 1rem 0;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #000000;
+      color: #ffffff;
+      padding: 8px 14px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      z-index: 100;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    footer {
+      padding: 2rem 0;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="container header-inner">
+      <a href="#top" class="logo">Intent<span>DB</span></a>
+      <button class="ping-badge" id="pingBtn" title="Click to test live round-trip latency">
+        <span class="ping-dot"></span>
+        <span id="pingStatus">Live Ping: ...</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="container" id="top">
+    <!-- Hero -->
+    <div class="hero">
+      <h1>IntentDB Gateway</h1>
+      <p>High-performance, zero-cold-start PostgreSQL HTTP bridge. Query your database over standard HTTPS (Port 443) with zero port 5432 firewall blocks.</p>
+    </div>
+
+    <!-- Credentials & .env Generator -->
+    <section id="connection">
+      <h2>Connection Credentials</h2>
+      <p class="section-desc">Configure your gateway parameters to build your <code>DATABASE_URL</code> connection string.</p>
+
+      <div class="grid-3">
+        <div class="form-group">
+          <label for="cfgDomain">Gateway Domain</label>
+          <input type="text" id="cfgDomain" class="input-text" placeholder="db.yourdomain.com" spellcheck="false">
+        </div>
+        <div class="form-group">
+          <label for="cfgKey">API Key</label>
+          <input type="text" id="cfgKey" class="input-text" placeholder="SBEIU3h38h..." spellcheck="false">
+        </div>
+        <div class="form-group">
+          <label for="cfgDb">Database Name</label>
+          <input type="text" id="cfgDb" class="input-text" placeholder="intent_host" spellcheck="false">
+        </div>
+      </div>
+
+      <div class="url-box">
+        <div class="url-text" id="urlFormatted">
+          https://<span class="key" id="vKey">YOUR_API_KEY</span>@<span id="vHost">db.yourdomain.com</span>/<span id="vDb">intent_host</span>
+        </div>
+        <button class="btn btn-outline" id="copyUrlBtn">Copy URL</button>
+      </div>
+
+      <div class="code-box">
+        <div class="code-top">
+          <span>.env (Application configuration)</span>
+          <button class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem;" id="copyEnvBtn">Copy .env</button>
+        </div>
+        <pre class="code-body" id="envCodePreview">DATABASE_URL=https://YOUR_API_KEY@db.yourdomain.com/intent_host</pre>
+      </div>
+    </section>
+
+    <!-- SQL Query Console -->
+    <section id="console">
+      <h2>SQL Query Console</h2>
+      <p class="section-desc">Test parameterized queries directly against your IntentDB Gateway.</p>
+
+      <div class="chips-row">
+        <button class="chip-btn" data-sql="SELECT version(), current_database(), current_user, now();" data-params="[]">System Info</button>
+        <button class="chip-btn" data-sql="SELECT 1 + 1 AS result;" data-params="[]">Math Ping</button>
+        <button class="chip-btn" data-sql="SELECT $1::text AS message, $2::int AS counter, $3::boolean AS active;" data-params='["Hello IntentDB", 42, true]'>Parameters ($1, $2, $3)</button>
+        <button class="chip-btn" data-sql="SELECT table_name FROM information_schema.tables WHERE table_schema = $1;" data-params='["public"]'>List Tables</button>
+      </div>
+
+      <div class="console-layout">
+        <div>
+          <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">SQL QUERY</label>
+          <textarea id="queryInput" class="query-textarea" spellcheck="false">SELECT version(), current_database(), current_user, now() AS server_time;</textarea>
+
+          <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); display: block; margin-top: 8px;">PARAMETERS ($1, $2...) [JSON Array]</label>
+          <textarea id="paramsInput" class="params-textarea" spellcheck="false">[]</textarea>
+
+          <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 0.78rem; color: var(--text-dim);" id="outputTimer">POST /query</span>
+            <button id="runQueryBtn" class="btn btn-primary">Execute Query</button>
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">RESPONSE</label>
+          <pre id="outputConsole" class="console-screen">// Click 'Execute Query' to view response...</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Code Examples -->
+    <section id="examples">
+      <h2>Client Integrations</h2>
+      <p class="section-desc">Examples for integrating with IntentDB using npm, native fetch, or server actions.</p>
+
+      <div class="tabs-nav">
+        <button class="tab-btn active" data-tab="tab-sdk">intentdb (npm)</button>
+        <button class="tab-btn" data-tab="tab-inline">Inline fetch (Zero npm)</button>
+        <button class="tab-btn" data-tab="tab-nextjs">Next.js</button>
+        <button class="tab-btn" data-tab="tab-curl">cURL</button>
+      </div>
+
+      <div class="tab-panel active" id="tab-sdk">
+        <div class="code-box">
+          <div class="code-top">
+            <span>npm package usage</span>
+            <button class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem;" onclick="copyText('npm i intentdb')">Copy Install</button>
+          </div>
+          <pre class="code-body">npm install intentdb</pre>
+        </div>
+
+        <div class="code-box">
+          <div class="code-top">
+            <span>app.js (ESM / TypeScript)</span>
+            <button class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem;" onclick="copyText(document.getElementById('codeSdk').innerText)">Copy Code</button>
+          </div>
+          <pre class="code-body" id="codeSdk">import { intentdb } from 'intentdb';
+
+// Automatically connects to process.env.DATABASE_URL
+const db = intentdb();
+
+// 1. Tagged template query (Auto-parameterized & SQL-injection safe)
+const users = await db`SELECT id, email FROM users WHERE status = ${'active'}`;
+
+// 2. Standard query with explicit params
+const { rows } = await db.query('SELECT * FROM products WHERE id = $1', [42]);
+
+// 3. Atomic transaction (Rolls back automatically on failure)
+await db.transaction([
+  { query: 'UPDATE accounts SET balance = balance - $1 WHERE id = $2', params: [50, 1] },
+  { query: 'UPDATE accounts SET balance = balance + $1 WHERE id = $2', params: [50, 2] }
+]);
+
+// 4. Real-time latency ping
+const { status, response } = await db.ping(); // { status: "ok", response: "4ms" }</pre>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-inline">
+        <div class="code-box">
+          <div class="code-top">
+            <span>Zero-dependency helper (paste directly into project)</span>
+            <button class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem;" onclick="copyText(document.getElementById('codeInline').innerText)">Copy Code</button>
+          </div>
+          <pre class="code-body" id="codeInline">const _u = new URL(process.env.DATABASE_URL);
+export const query = (sql, params = []) => fetch(`${_u.origin}/query`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${_u.username}`
+  },
+  cache: 'no-store',
+  body: JSON.stringify({ query: sql, params })
+}).then(r => r.json());
+
+// Usage:
+const { rows } = await query('SELECT * FROM users WHERE id = $1', [1]);</pre>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-nextjs">
+        <div class="code-box">
+          <div class="code-top">
+            <span>app/page.tsx (Next.js Server Component)</span>
+            <button class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem;" onclick="copyText(document.getElementById('codeNext').innerText)">Copy Code</button>
+          </div>
+          <pre class="code-body" id="codeNext">import { intentdb } from 'intentdb';
+
+const db = intentdb();
+
+export default async function Page() {
+  const users = await db`SELECT id, name FROM users LIMIT 10`;
+
+  return (
+    &lt;main&gt;
+      &lt;h1&gt;Users&lt;/h1&gt;
+      &lt;ul&gt;
+        {users.map((u: any) => (
+          &lt;li key={u.id}&gt;{u.name}&lt;/li&gt;
+        ))}
+      &lt;/ul&gt;
+    &lt;/main&gt;
+  );
+}</pre>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-curl">
+        <div class="code-box">
+          <div class="code-top">
+            <span>Terminal</span>
+            <button class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem;" onclick="copyText(document.getElementById('codeCurl').innerText)">Copy Code</button>
+          </div>
+          <pre class="code-body" id="codeCurl">curl -X POST https://db.yourdomain.com/query \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"SELECT version(), now() AS server_time"}'</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Route Reference -->
+    <section id="routes">
+      <h2>Route Reference</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Route</th>
+            <th>Method</th>
+            <th>Auth</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>/</code> or <code>/health</code></td>
+            <td><span class="tag tag-blue">GET</span></td>
+            <td>Public</td>
+            <td>Live DB round-trip latency check: <code>{"status":"ok","response":"5ms"}</code></td>
+          </tr>
+          <tr>
+            <td><code>/stats</code></td>
+            <td><span class="tag tag-blue">GET</span></td>
+            <td>API Key</td>
+            <td>Gateway connection pool metrics and process status.</td>
+          </tr>
+          <tr>
+            <td><code>/query</code></td>
+            <td><span class="tag">POST</span></td>
+            <td>API Key</td>
+            <td>Execute parameterized SQL query. Body: <code>{"query":"...", "params":[...]}</code></td>
+          </tr>
+          <tr>
+            <td><code>/transaction</code></td>
+            <td><span class="tag">POST</span></td>
+            <td>API Key</td>
+            <td>Atomic multi-query execution. Rolls back on error.</td>
+          </tr>
+          <tr>
+            <td><code>/batch</code></td>
+            <td><span class="tag">POST</span></td>
+            <td>API Key</td>
+            <td>Parallel queries via Promise.allSettled.</td>
+          </tr>
+          <tr>
+            <td><code>/docs</code></td>
+            <td><span class="tag tag-blue">GET</span></td>
+            <td>Public</td>
+            <td>Interactive single-page documentation and SQL console.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Disabling Docs -->
+    <section id="disable">
+      <h2>Disabling Documentation</h2>
+      <p class="section-desc">To run IntentDB as a 100% headless, private JSON API without web documentation:</p>
+
+      <div class="callout">
+        <strong>Option 1: In your gateway <code>.env</code> file:</strong><br>
+        Set <code>ENABLE_DOCS=false</code>. Requests to <code>GET /docs</code> will immediately return HTTP 404.<br><br>
+        <strong>Option 2: Delete <code>docs.html</code>:</strong><br>
+        Removing <code>docs.html</code> disables the route safely without affecting any database queries.
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>IntentDB — Minimal PostgreSQL HTTP Gateway</p>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast">Copied to clipboard</div>
+
+  <script>
+    const state = {
+      domain: window.location.hostname || 'db.yourdomain.com',
+      key: '',
+      dbName: 'intent_host'
+    };
+
+    if (window.location.origin.startsWith('http')) {
+      state.domain = window.location.host;
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('key')) state.key = urlParams.get('key');
+    if (urlParams.get('db')) state.dbName = urlParams.get('db');
+
+    const cfgDomain = document.getElementById('cfgDomain');
+    const cfgKey = document.getElementById('cfgKey');
+    const cfgDb = document.getElementById('cfgDb');
+    const vKey = document.getElementById('vKey');
+    const vHost = document.getElementById('vHost');
+    const vDb = document.getElementById('vDb');
+    const envPreview = document.getElementById('envCodePreview');
+    const copyUrlBtn = document.getElementById('copyUrlBtn');
+    const copyEnvBtn = document.getElementById('copyEnvBtn');
+    const pingBtn = document.getElementById('pingBtn');
+    const pingStatus = document.getElementById('pingStatus');
+    const queryInput = document.getElementById('queryInput');
+    const paramsInput = document.getElementById('paramsInput');
+    const runQueryBtn = document.getElementById('runQueryBtn');
+    const outputConsole = document.getElementById('outputConsole');
+    const outputTimer = document.getElementById('outputTimer');
+    const toast = document.getElementById('toast');
+
+    cfgDomain.value = state.domain;
+    cfgKey.value = state.key;
+    cfgDb.value = state.dbName;
+
+    function buildUrl() {
+      const domain = cfgDomain.value.trim() || 'db.yourdomain.com';
+      const key = cfgKey.value.trim() || 'YOUR_API_KEY';
+      const db = cfgDb.value.trim() || 'intent_host';
+      return `https://${key}@${domain}/${db}`;
+    }
+
+    function updateUrl() {
+      const domain = cfgDomain.value.trim() || 'db.yourdomain.com';
+      const key = cfgKey.value.trim() || 'YOUR_API_KEY';
+      const db = cfgDb.value.trim() || 'intent_host';
+
+      vKey.textContent = key;
+      vHost.textContent = domain;
+      vDb.textContent = db;
+      envPreview.textContent = `DATABASE_URL=https://${key}@${domain}/${db}`;
+
+      const curlEl = document.getElementById('codeCurl');
+      if (curlEl) {
+        curlEl.textContent = curlEl.textContent.replace(/https:\/\/[^/]+\/query/g, `https://${domain}/query`);
+      }
+    }
+
+    cfgDomain.addEventListener('input', updateUrl);
+    cfgKey.addEventListener('input', updateUrl);
+    cfgDb.addEventListener('input', updateUrl);
+    updateUrl();
+
+    function showToast(msg = 'Copied to clipboard') {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(() => showToast());
+    }
+
+    copyUrlBtn.addEventListener('click', () => copyText(buildUrl()));
+    copyEnvBtn.addEventListener('click', () => copyText(`DATABASE_URL=${buildUrl()}`));
+
+    async function testPing() {
+      const domain = cfgDomain.value.trim() || window.location.host;
+      const target = window.location.protocol.startsWith('http') && window.location.host === domain 
+        ? '/' 
+        : `https://${domain}/`;
+
+      pingStatus.textContent = 'Pinging...';
+      const t0 = performance.now();
+      try {
+        const res = await fetch(target, { cache: 'no-store' });
+        const data = await res.json();
+        const rtt = Math.round(performance.now() - t0);
+        pingStatus.textContent = data.status === 'ok' ? `Live: ${data.response} (${rtt}ms RTT)` : `Status: ${data.status}`;
+      } catch (err) {
+        pingStatus.textContent = 'Offline / Ping blocked';
+      }
+    }
+    pingBtn.addEventListener('click', testPing);
+    testPing();
+
+    runQueryBtn.addEventListener('click', async () => {
+      const domain = cfgDomain.value.trim() || window.location.host;
+      const key = cfgKey.value.trim();
+      const sql = queryInput.value.trim();
+
+      if (!sql) {
+        outputConsole.textContent = 'Error: Query is empty';
+        return;
+      }
+
+      let params = [];
+      try {
+        const raw = paramsInput.value.trim();
+        if (raw) params = JSON.parse(raw);
+        if (!Array.isArray(params)) throw new Error('Parameters must be a JSON array: ["text", 123]');
+      } catch (err) {
+        outputConsole.textContent = `Parameter Error: ${err.message}`;
+        return;
+      }
+
+      const target = window.location.protocol.startsWith('http') && window.location.host === domain 
+        ? '/query' 
+        : `https://${domain}/query`;
+
+      runQueryBtn.disabled = true;
+      runQueryBtn.textContent = 'Running...';
+      outputTimer.textContent = 'Executing...';
+      outputConsole.textContent = 'Sending request...';
+
+      const t0 = performance.now();
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (key) headers['Authorization'] = `Bearer ${key}`;
+
+        const res = await fetch(target, {
+          method: 'POST',
+          headers,
+          cache: 'no-store',
+          body: JSON.stringify({ query: sql, params })
+        });
+
+        const elapsed = Math.round(performance.now() - t0);
+        const data = await res.json();
+
+        outputTimer.textContent = `HTTP ${res.status} (${elapsed}ms)`;
+        outputConsole.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        const elapsed = Math.round(performance.now() - t0);
+        outputTimer.textContent = `Error (${elapsed}ms)`;
+        outputConsole.textContent = `Connection failed: ${err.message}`;
+      } finally {
+        runQueryBtn.disabled = false;
+        runQueryBtn.textContent = 'Execute Query';
+      }
+    });
+
+    document.querySelectorAll('.chip-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        queryInput.value = btn.dataset.sql;
+        paramsInput.value = btn.dataset.params || '[]';
+      });
+    });
+
+    document.querySelectorAll('.tab-btn').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

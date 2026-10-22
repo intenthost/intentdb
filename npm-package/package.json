@@ -1,0 +1,38 @@
+{
+  "name": "intentdb",
+  "version": "1.0.1",
+  "description": "Serverless PostgreSQL client for IntentDB over HTTPS. Zero dependencies, zero hardcoded links, real-time live responses.",
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "require": "./index.cjs",
+      "types": "./index.d.ts"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "index.js",
+    "index.cjs",
+    "index.d.ts",
+    "README.md"
+  ],
+  "keywords": [
+    "intentdb",
+    "intenthost",
+    "postgres",
+    "postgresql",
+    "serverless",
+    "sql",
+    "database",
+    "http-gateway"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

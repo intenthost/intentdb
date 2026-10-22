@@ -1,0 +1,57 @@
+# ─── IntentDB Gateway — .htaccess ────────────────────────────
+# Place this in public_html (or your subdomain's document root).
+#
+# cPanel's "Setup Node.js App" will APPEND its own Passenger
+# directives below this block automatically. Do NOT remove them.
+# ─────────────────────────────────────────────────────────────
+
+# Disable directory listing
+Options -Indexes
+
+# ── Real-time response: disable all caching ────────────────────
+<IfModule mod_headers.c>
+    Header always set Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
+    Header always set Pragma "no-cache"
+    Header always set Expires "0"
+    Header always unset X-Powered-By
+</IfModule>
+
+# ── Prevent Cold Starts (Keep Node.js Warm 24/7) ───────────────
+<IfModule mod_passenger.c>
+    PassengerMinInstances 1
+    PassengerPoolIdleTime 0
+</IfModule>
+
+# ── Block direct web access to sensitive files ────────────────
+<Files ".env">
+    Order allow,deny
+    Deny from all
+</Files>
+
+<Files ".env.example">
+    Order allow,deny
+    Deny from all
+</Files>
+
+<Files "package.json">
+    Order allow,deny
+    Deny from all
+</Files>
+
+<Files "package-lock.json">
+    Order allow,deny
+    Deny from all
+</Files>
+
+<Files "ecosystem.config.js">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# ── Block access to sensitive directories ─────────────────────
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(scripts|logs|node_modules)(/|$) - [F,L]
+</IfModule>
+
+# ─── cPanel Node.js App (Passenger) will auto-append below ───
