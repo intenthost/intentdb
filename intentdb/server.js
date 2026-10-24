@@ -17,32 +17,34 @@ const fs         = require('fs');
 const pathModule = require('path');
 require('dotenv').config();
 
-// ─── Require all env vars before doing anything ──────────────
+// ─── Environment configuration ───────────────────────────────
 const REQUIRED = ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASS', 'API_KEY'];
 const missing  = REQUIRED.filter(k => !process.env[k]);
 if (missing.length) {
-  console.error(`[intentdb] Missing required env vars: ${missing.join(', ')}`);
-  process.exit(1);
+  console.warn(`[intentdb] Warning: Missing required env vars: ${missing.join(', ')}`);
 }
 
 // ─── Persistent PostgreSQL Connection Pool ───────────────────
-const pool = new Pool({
-  host                       : process.env.DB_HOST,
-  port                       : parseInt(process.env.DB_PORT) || 5432,
-  database                   : process.env.DB_NAME,
-  user                       : process.env.DB_USER,
-  password                   : process.env.DB_PASS,
-  max                        : parseInt(process.env.POOL_MAX) || 20,
-  min                        : parseInt(process.env.POOL_MIN) || 2,
-  idleTimeoutMillis          : 30000,
-  connectionTimeoutMillis    : 10000,
-  keepAlive                  : true,
-  keepAliveInitialDelayMillis: 10000,
-  statement_timeout          : parseInt(process.env.STATEMENT_TIMEOUT) || 30000,
-  query_timeout              : parseInt(process.env.QUERY_TIMEOUT)     || 30000,
-});
+let pool = null;
+if (!missing.length) {
+  pool = new Pool({
+    host                       : process.env.DB_HOST,
+    port                       : parseInt(process.env.DB_PORT, 10) || 5432,
+    database                   : process.env.DB_NAME,
+    user                       : process.env.DB_USER,
+    password                   : process.env.DB_PASS,
+    max                        : parseInt(process.env.POOL_MAX, 10) || 20,
+    min                        : parseInt(process.env.POOL_MIN, 10) || 2,
+    idleTimeoutMillis          : 30000,
+    connectionTimeoutMillis    : 10000,
+    keepAlive                  : true,
+    keepAliveInitialDelayMillis: 10000,
+    statement_timeout          : parseInt(process.env.STATEMENT_TIMEOUT, 10) || 30000,
+    query_timeout              : parseInt(process.env.QUERY_TIMEOUT, 10)     || 30000,
+  });
 
-pool.on('error', err => console.error('[pool] client error:', err.message));
+  pool.on('error', err => console.error('[pool] client error:', err.message));
+}
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -106,6 +108,22 @@ async function handle(req, res) {
 
   // Preflight
   if (method === 'OPTIONS') return send(res, 204, {});
+
+  // Missing configuration diagnostics
+  if (missing.length > 0) {
+    return send(res, 500, {
+      status  : 'error',
+      response: `Configuration error: Missing required env vars in .env (${missing.join(', ')}).`,
+      hint    : 'Create or update the .env file with DB_HOST, DB_NAME, DB_USER, DB_PASS, API_KEY'
+    });
+  }
+
+  if (!pool) {
+    return send(res, 500, {
+      status  : 'error',
+      response: 'Database pool is not initialized.',
+    });
+  }
 
   // ── GET / & GET /health ─ real-time DB round-trip response ─
   if (method === 'GET' && (path === '/' || path === '/health')) {
@@ -258,54 +276,69 @@ async function handle(req, res) {
   });
 }
 
-// ─── Warm pool connections on boot ────────────────────────────
+// ─── Warm pool connections on boot (non-blocking) ────────────
 async function warmPool() {
-  const count   = parseInt(process.env.POOL_MIN) || 2;
-  const clients = [];
-  for (let i = 0; i < count; i++) clients.push(await pool.connect());
-  clients.forEach(c => c.release());
-  console.log(`[intentdb] pool ready (${count} connections warm)`);
+  if (!pool) return;
+  try {
+    const count   = parseInt(process.env.POOL_MIN, 10) || 2;
+    const clients = [];
+    for (let i = 0; i < count; i++) clients.push(await pool.connect());
+    clients.forEach(c => c.release());
+    console.log(`[intentdb] pool ready (${count} connections warm)`);
+  } catch (err) {
+    console.warn('[intentdb] Pool warm deferred:', err.message);
+  }
 }
 
-// ─── Start ────────────────────────────────────────────────────
-warmPool()
-  .then(() => {
-    const PORT   = parseInt(process.env.PORT) || 3000;
-    const server = http.createServer(handle);
+// ─── Start HTTP Server immediately ────────────────────────────
+// Support TCP port or Passenger Unix socket / pipe
+const PORT   = process.env.PORT || 3000;
+const server = http.createServer(handle);
 
-    server.keepAliveTimeout = 65000;
-    server.headersTimeout = 66000;
-    server.requestTimeout = 30000;
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 66000;
+server.requestTimeout = 30000;
 
-    server.on('connection', (socket) => {
-      socket.setNoDelay(true);
-    });
+server.on('connection', (socket) => {
+  socket.setNoDelay(true);
+});
 
-    // Self-keepalive every 45s to prevent cPanel/Passenger/LiteSpeed from sleeping
-    setInterval(() => {
-      pool.query('SELECT 1').catch(() => {});
-    }, 45000);
+// Self-keepalive every 45s to prevent cPanel/Passenger/LiteSpeed from sleeping
+setInterval(() => {
+  if (pool) {
+    pool.query('SELECT 1').catch(() => {});
+  }
+}, 45000);
 
-    server.listen(PORT, '0.0.0.0', () => {
-      console.log(`[intentdb] listening on port ${PORT}`);
-      console.log(`[intentdb] db → ${process.env.DB_HOST}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME}`);
-    });
+// Auto-recover from port conflicts if multiple subdomains share port 3000
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE' && !isNaN(Number(PORT))) {
+    const nextPort = Number(PORT) + 1;
+    console.warn(`[intentdb] Port ${PORT} in use, trying port ${nextPort}...`);
+    server.listen(nextPort);
+  } else {
+    console.error('[intentdb] Server error:', err.message);
+  }
+});
 
-    process.on('SIGTERM', async () => {
-      console.log('[intentdb] SIGTERM — shutting down');
-      server.close();
-      await pool.end();
-      process.exit(0);
-    });
+server.listen(PORT, () => {
+  console.log(`[intentdb] listening on ${PORT}`);
+  if (pool) {
+    console.log(`[intentdb] db → ${process.env.DB_HOST}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME}`);
+  }
+  warmPool().catch(() => {});
+});
 
-    process.on('SIGINT', async () => {
-      console.log('[intentdb] SIGINT — shutting down');
-      server.close();
-      await pool.end();
-      process.exit(0);
-    });
-  })
-  .catch(err => {
-    console.error('[intentdb] startup failed:', err.message);
-    process.exit(1);
-  });
+process.on('SIGTERM', async () => {
+  console.log('[intentdb] SIGTERM — shutting down');
+  server.close();
+  if (pool) await pool.end();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('[intentdb] SIGINT — shutting down');
+  server.close();
+  if (pool) await pool.end();
+  process.exit(0);
+});
