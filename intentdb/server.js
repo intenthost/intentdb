@@ -7,6 +7,10 @@
 // ═══════════════════════════════════════════════════════════
 
 const http       = require('http');
+const dns        = require('dns');
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 const { Pool }   = require('pg');
 const crypto     = require('crypto');
 const fs         = require('fs');
@@ -30,7 +34,7 @@ const pool = new Pool({
   password                   : process.env.DB_PASS,
   max                        : parseInt(process.env.POOL_MAX) || 20,
   min                        : parseInt(process.env.POOL_MIN) || 2,
-  idleTimeoutMillis          : 0,        // never close idle → zero cold start
+  idleTimeoutMillis          : 30000,
   connectionTimeoutMillis    : 10000,
   keepAlive                  : true,
   keepAliveInitialDelayMillis: 10000,
@@ -47,6 +51,7 @@ function send(res, status, body) {
   res.writeHead(status, {
     'Content-Type'                : 'application/json',
     'Content-Length'              : Buffer.byteLength(payload),
+    'Connection'                  : 'keep-alive',
     'Access-Control-Allow-Origin' : process.env.CORS_ORIGIN || '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Api-Key',
@@ -267,6 +272,19 @@ warmPool()
   .then(() => {
     const PORT   = parseInt(process.env.PORT) || 3000;
     const server = http.createServer(handle);
+
+    server.keepAliveTimeout = 65000;
+    server.headersTimeout = 66000;
+    server.requestTimeout = 30000;
+
+    server.on('connection', (socket) => {
+      socket.setNoDelay(true);
+    });
+
+    // Self-keepalive every 45s to prevent cPanel/Passenger/LiteSpeed from sleeping
+    setInterval(() => {
+      pool.query('SELECT 1').catch(() => {});
+    }, 45000);
 
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`[intentdb] listening on port ${PORT}`);
